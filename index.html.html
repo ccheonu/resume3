@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>红色记忆 · 奋进新征程</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path fill='%23d62828' d='M12 2l2.9 6.3 6.9.8-5.1 4.7 1.4 6.8L12 17l-6.1 3.6 1.4-6.8L2.2 9.1l6.9-.8z'/></svg>">
+<style>
+:root{
+  --bg:#160404;
+  --bg2:#2a0808;
+  --red:#d62828;
+  --red-bright:#ef4444;
+  --gold:#e6c26a;
+  --gold-dim:#a8843a;
+  --cream:#f3e6c8;
+  --muted:#c9a08c;
+  --ease:cubic-bezier(.2,.78,.2,1);
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;overflow:hidden;}
+body{
+  font-family:"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans CJK SC",system-ui,sans-serif;
+  background:var(--bg);
+  color:var(--cream);
+  position:relative;
+  touch-action:pan-y;
+}
+.serif{font-family:"Songti SC","STSong","SimSun","Noto Serif CJK SC",serif;}
+
+/* ===== 噪点纹理 ===== */
+body::after{
+  content:"";position:fixed;inset:0;z-index:300;pointer-events:none;opacity:.05;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.86' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.3'/%3E%3C/svg%3E");
+  mix-blend-mode:soft-light;
+}
+
+/* ===== 粒子画布 ===== */
+#dust{position:fixed;inset:0;z-index:5;pointer-events:none;}
+
+/* ===== 背景氛围 ===== */
+.bg-glow{
+  position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:
+    radial-gradient(circle at 20% 25%, rgba(214,40,40,.22), transparent 45%),
+    radial-gradient(circle at 80% 75%, rgba(230,194,106,.14), transparent 50%),
+    radial-gradient(circle at 50% 120%, rgba(160,20,20,.35), transparent 60%),
+    var(--bg);
+}
+/* 视差层 */
+.parallax{will-change:transform;}
+
+/* ===== 圆形转场遮罩 ===== */
+.mask{
+  position:fixed;top:50%;left:50%;width:220vmax;height:220vmax;border-radius:50%;
+  transform:translate(-50%,-50%) scale(0);
+  background:radial-gradient(circle at 50% 45%, #4a0d0d 0%, #2a0707 55%, #160404 100%);
+  z-index:200;pointer-events:none;
+}
+
+/* ===== 舞台与面板 ===== */
+.stage{position:fixed;inset:0;z-index:10;}
+.panel{
+  position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;
+  padding:9vh 9vw;opacity:0;visibility:hidden;
+  transition:opacity .5s ease;
+}
+.panel.active{opacity:1;visibility:visible;}
+
+/* ===== 文字入场 ===== */
+.char{
+  display:inline-block;opacity:0;transform:translate3d(0,110%,0) rotateX(-80deg);
+  backface-visibility:hidden;will-change:transform,opacity;
+}
+.panel.play .char{
+  opacity:1;transform:translate3d(0,0,0) rotateX(0);
+  transition:opacity .5s var(--ease), transform .55s var(--ease);
+  transition-delay:calc(var(--i) * 30ms);
+}
+.reveal{opacity:0;transform:translate3d(0,34px,0);}
+.panel.play .reveal{
+  opacity:1;transform:none;
+  transition:opacity .8s var(--ease), transform .8s var(--ease);
+  transition-delay:var(--d,0s);
+}
+
+/* ===== 通用排版 ===== */
+.kicker{
+  display:inline-flex;align-items:center;gap:10px;
+  font-size:.8rem;letter-spacing:.35em;color:var(--gold);
+  text-transform:uppercase;margin-bottom:22px;
+}
+.kicker::before{content:"";width:34px;height:1px;background:var(--gold);}
+.big-title{
+  font-family:"Songti SC","STSong","SimSun","Noto Serif CJK SC",serif;font-weight:900;
+  font-size:clamp(2.6rem,11vw,6rem);line-height:1.08;
+  color:var(--cream);
+}
+.gold-text{
+  background:linear-gradient(135deg,#f3d98a,#d4af37 50%,#f3d98a);
+  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+}
+.body-text{font-size:clamp(.95rem,2.4vw,1.15rem);line-height:2;color:var(--muted);max-width:34em;font-weight:300;}
+.divider{width:60px;height:2px;background:linear-gradient(90deg,var(--gold),transparent);margin:26px 0;}
+
+/* ===== 封面 ===== */
+#p0{align-items:center;text-align:center;}
+#p0 .big-title{font-size:clamp(3rem,15vw,7.5rem);}
+.flag-star{
+  width:clamp(50px,10vw,80px);height:clamp(50px,10vw,80px);
+  fill:var(--gold);margin-bottom:26px;filter:drop-shadow(0 0 18px rgba(230,194,106,.5));
+}
+.scroll-hint{
+  position:absolute;bottom:5vh;left:50%;transform:translateX(-50%);
+  color:var(--gold);font-size:.75rem;letter-spacing:.3em;display:flex;flex-direction:column;align-items:center;gap:10px;
+}
+.scroll-hint .mouse{
+  width:22px;height:36px;border:1.5px solid var(--gold);border-radius:12px;position:relative;
+}
+.scroll-hint .mouse::after{
+  content:"";position:absolute;left:50%;top:6px;width:3px;height:7px;border-radius:2px;
+  background:var(--gold);transform:translateX(-50%);animation:wheel 1.6s infinite;
+}
+@keyframes wheel{0%{opacity:1;top:6px}70%{opacity:0;top:18px}100%{opacity:0}}
+
+/* ===== 大年份 ===== */
+.year-num{
+  font-family:"Songti SC","STSong","SimSun","Noto Serif CJK SC",serif;font-weight:900;
+  font-size:clamp(4rem,20vw,11rem);line-height:1;color:var(--red);
+  text-shadow:0 0 60px rgba(214,40,40,.4);
+}
+
+/* ===== 时间轴 ===== */
+.timeline{display:grid;grid-template-columns:auto 2px 1fr;row-gap:26px;column-gap:22px;margin-top:10px;}
+.tl-year{font-family:"Songti SC","STSong","SimSun","Noto Serif CJK SC",serif;font-weight:700;color:var(--gold);font-size:1.15rem;text-align:right;align-self:center;}
+.tl-axis{position:relative;background:linear-gradient(var(--gold-dim),var(--gold-dim));align-self:stretch;}
+.tl-dot{position:absolute;top:6px;left:50%;transform:translateX(-50%);width:12px;height:12px;border-radius:50%;background:var(--gold);box-shadow:0 0 12px rgba(230,194,106,.7);}
+.tl-body{align-self:center;}
+.tl-body h4{font-family:"Songti SC","STSong","SimSun","Noto Serif CJK SC",serif;font-size:1.1rem;color:var(--cream);margin-bottom:4px;}
+.tl-body p{font-size:.85rem;color:var(--muted);line-height:1.6;}
+
+/* ===== 卡片网格 ===== */
+.cards{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-top:30px;}
+.card{
+  background:linear-gradient(135deg,rgba(214,40,40,.10),rgba(230,194,106,.04));
+  border:1px solid rgba(230,194,106,.18);border-radius:14px;padding:22px 20px;
+  backdrop-filter:blur(6px);
+}
+.card h4{font-family:"Songti SC","STSong","SimSun","Noto Serif CJK SC",serif;color:var(--gold);font-size:1.05rem;margin-bottom:8px;}
+.card p{font-size:.82rem;color:var(--muted);line-height:1.7;}
+
+/* ===== 数字统计 ===== */
+.stats{display:grid;grid-template-columns:repeat(2,1fr);gap:26px 20px;margin-top:34px;}
+.stat{text-align:center;}
+.stat .num{
+  font-family:"Songti SC","STSong","SimSun","Noto Serif CJK SC",serif;font-weight:900;font-size:clamp(2.4rem,9vw,4rem);
+  color:var(--gold);line-height:1;
+}
+.stat .num small{font-size:.4em;color:var(--cream);margin-left:2px;}
+.stat .lbl{font-size:.82rem;color:var(--muted);margin-top:10px;letter-spacing:.1em;}
+
+/* ===== 结语 ===== */
+#p7{align-items:center;text-align:center;}
+.ending-quote{
+  font-family:"Songti SC","STSong","SimSun","Noto Serif CJK SC",serif;font-weight:700;
+  font-size:clamp(1.6rem,6vw,3rem);line-height:1.5;color:var(--cream);
+}
+.replay-btn{
+  margin-top:44px;padding:13px 42px;border:1px solid var(--gold);border-radius:999px;
+  background:transparent;color:var(--gold);font-size:.9rem;letter-spacing:.2em;cursor:pointer;
+  transition:all .3s var(--ease);font-family:inherit;
+}
+.replay-btn:hover{background:var(--gold);color:#160404;transform:translateY(-3px);box-shadow:0 12px 30px rgba(230,194,106,.25);}
+
+/* ===== 进度点 ===== */
+.dots{position:fixed;right:22px;top:50%;transform:translateY(-50%);z-index:50;display:flex;flex-direction:column;gap:14px;}
+.dot{width:8px;height:8px;border-radius:50%;background:rgba(230,194,106,.3);cursor:pointer;transition:all .3s;}
+.dot.on{background:var(--gold);transform:scale(1.4);box-shadow:0 0 10px rgba(230,194,106,.6);}
+
+/* ===== 顶部角标 ===== */
+.brand{position:fixed;top:20px;left:24px;z-index:50;font-size:.72rem;letter-spacing:.25em;color:var(--muted);}
+.brand b{color:var(--gold);}
+
+@media (max-width:600px){
+  .cards{gap:12px;}
+  .card{padding:16px 14px;}
+  .timeline{column-gap:16px;}
+}
+@media (prefers-reduced-motion:reduce){
+  *{animation-duration:.01ms!important;transition-duration:.01ms!important;}
+}
+</style>
+</head>
+<body>
+<div class="bg-glow parallax" id="bgGlow"></div>
+<canvas id="dust"></canvas>
+<div class="stage" id="stage">
+<!-- ===== 第1页 封面 ===== -->
+<section class="panel" id="p0">
+  <svg class="flag-star" viewBox="0 0 24 24"><path d="M12 2l2.9 6.3 6.9.8-5.1 4.7 1.4 6.8L12 17l-6.1 3.6 1.4-6.8L2.2 9.1l6.9-.8z"/></svg>
+  <div class="kicker reveal" style="--d:.1s">建党 · 传承 · 奋进</div>
+  <h1 class="big-title"><span class="char" style="--i:0">红</span><span class="char" style="--i:1">色</span><span class="char" style="--i:2">记</span><span class="char" style="--i:3">忆</span></h1>
+  <p class="body-text reveal" style="--d:.5s;margin:26px auto 0;">一段开天辟地的征程，一座永不褪色的丰碑</p>
+  <div class="scroll-hint reveal" style="--d:1s">
+    <div class="mouse"></div>
+    <span>上滑探索</span>
+  </div>
+</section>
+
+<!-- ===== 第2页 序章 ===== -->
+<section class="panel" id="p1">
+  <div class="kicker reveal">序章</div>
+  <h2 class="big-title serif" style="font-size:clamp(1.8rem,7vw,3.4rem);">不忘<span class="gold-text">来时路</span></h2>
+  <div class="divider reveal" style="--d:.2s"></div>
+  <p class="body-text reveal" style="--d:.35s;">
+    从石库门到天安门，从兴业路到复兴路。一百多年前，一叶红船在嘉兴南湖悄然起航，
+    承载着民族救亡图存的希望，穿越惊涛骇浪，领航中国号巨轮破浪前行。
+  </p>
+  <p class="body-text reveal" style="--d:.55s;margin-top:18px;">
+    历史是最好的教科书。让我们顺着时间的长河，重温那段燃烧的岁月。
+  </p>
+</section>
+
+<!-- ===== 第3页 1921 ===== -->
+<section class="panel" id="p2">
+  <div class="kicker reveal">伟大开端</div>
+  <div class="year-num reveal" data-count="1921">1921</div>
+  <h2 class="serif reveal" style="font-size:clamp(1.6rem,6vw,2.6rem);margin-top:10px;color:var(--cream);">开天辟地 · 红船起航</h2>
+  <div class="divider reveal" style="--d:.2s"></div>
+  <p class="body-text reveal" style="--d:.3s;">
+    1921年7月，中国共产党第一次全国代表大会在南湖的一艘红船上胜利闭幕，
+    正式宣告中国共产党成立。这是开天辟地的大事变，中国革命的面貌从此焕然一新。
+  </p>
+</section>
+
+<!-- ===== 第4页 时间轴 ===== -->
+<section class="panel" id="p3">
+  <div class="kicker reveal">光辉历程</div>
+  <h2 class="serif reveal" style="font-size:clamp(1.5rem,5.5vw,2.4rem);">百年征程 · 关键节点</h2>
+  <div class="timeline" style="margin-top:26px;">
+    <div class="tl-year reveal" style="--d:.1s">1921</div>
+    <div class="tl-axis reveal" style="--d:.1s"><span class="tl-dot"></span></div>
+    <div class="tl-body reveal" style="--d:.1s"><h4>建党启航</h4><p>中国共产党成立，中国革命面目焕然一新。</p></div>
+
+    <div class="tl-year reveal" style="--d:.25s">1934</div>
+    <div class="tl-axis reveal" style="--d:.25s"><span class="tl-dot"></span></div>
+    <div class="tl-body reveal" style="--d:.25s"><h4>万里长征</h4><p>工农红军战略转移，锻造不怕牺牲的精神丰碑。</p></div>
+
+    <div class="tl-year reveal" style="--d:.4s">1949</div>
+    <div class="tl-axis reveal" style="--d:.4s"><span class="tl-dot"></span></div>
+    <div class="tl-body reveal" style="--d:.4s"><h4>开国大典</h4><p>中华人民共和国成立，中国人民从此站起来了。</p></div>
+
+    <div class="tl-year reveal" style="--d:.55s">1978</div>
+    <div class="tl-axis reveal" style="--d:.55s"><span class="tl-dot"></span></div>
+    <div class="tl-body reveal" style="--d:.55s"><h4>改革开放</h4><p>伟大历史转折，中国大踏步赶上时代潮流。</p></div>
+
+    <div class="tl-year reveal" style="--d:.7s">2021</div>
+    <div class="tl-axis reveal" style="--d:.7s"><span class="tl-dot"></span></div>
+    <div class="tl-body reveal" style="--d:.7s"><h4>全面小康</h4><p>建党百年，历史性解决绝对贫困问题。</p></div>
+  </div>
+</section>
+
+<!-- ===== 第5页 精神谱系 ===== -->
+<section class="panel" id="p4">
+  <div class="kicker reveal">精神谱系</div>
+  <h2 class="serif reveal" style="font-size:clamp(1.5rem,5.5vw,2.4rem);">永不褪色的精神</h2>
+  <div class="cards">
+    <div class="card reveal" style="--d:.1s"><h4>红船精神</h4><p>开天辟地、敢为人先的首创精神。</p></div>
+    <div class="card reveal" style="--d:.25s"><h4>井冈山精神</h4><p>坚定信念、艰苦奋斗的革命意志。</p></div>
+    <div class="card reveal" style="--d:.4s"><h4>长征精神</h4><p>不怕牺牲、勇往直前的英雄气概。</p></div>
+    <div class="card reveal" style="--d:.55s"><h4>延安精神</h4><p>实事求是、全心全意为人民服务。</p></div>
+  </div>
+</section>
+
+<!-- ===== 第6页 数字 ===== -->
+<section class="panel" id="p5">
+  <div class="kicker reveal">数字里的答卷</div>
+  <h2 class="serif reveal" style="font-size:clamp(1.5rem,5.5vw,2.4rem);">沧桑巨变 · 铸就辉煌</h2>
+  <div class="stats">
+    <div class="stat reveal" style="--d:.15s">
+      <div class="num"><span class="cnt" data-to="100">0</span><small>余年</small></div>
+      <div class="lbl">光辉奋斗历程</div>
+    </div>
+    <div class="stat reveal" style="--d:.3s">
+      <div class="num"><span class="cnt" data-to="56">0</span><small>个</small></div>
+      <div class="lbl">民族同心奋进</div>
+    </div>
+    <div class="stat reveal" style="--d:.45s">
+      <div class="num"><span class="cnt" data-to="40">0</span><small>余年</small></div>
+      <div class="lbl">改革开放征程</div>
+    </div>
+    <div class="stat reveal" style="--d:.6s">
+      <div class="num"><span class="cnt" data-to="14">0</span><small>亿</small></div>
+      <div class="lbl">人民团结一心</div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 第7页 新时代 ===== -->
+<section class="panel" id="p6">
+  <div class="kicker reveal">新征程</div>
+  <h2 class="big-title serif" style="font-size:clamp(1.9rem,8vw,3.8rem);">奋进<span class="gold-text">新征程</span></h2>
+  <div class="divider reveal" style="--d:.2s"></div>
+  <p class="body-text reveal" style="--d:.35s;">
+    时代的接力棒已经交到我们手中。以中国式现代化全面推进强国建设、民族复兴，
+    让红色基因在新时代绽放新的光芒。
+  </p>
+  <p class="body-text reveal" style="--d:.55s;margin-top:18px;">
+    路虽远，行则将至；事虽难，做则必成。
+  </p>
+</section>
+
+<!-- ===== 第8页 结语 ===== -->
+<section class="panel" id="p7">
+  <svg class="flag-star reveal" style="--d:.1s" viewBox="0 0 24 24"><path d="M12 2l2.9 6.3 6.9.8-5.1 4.7 1.4 6.8L12 17l-6.1 3.6 1.4-6.8L2.2 9.1l6.9-.8z"/></svg>
+  <div class="ending-quote reveal" style="--d:.25s;">
+    请党放心<br><span class="gold-text">强国有我</span>
+  </div>
+  <p class="body-text reveal" style="--d:.5s;margin:24px auto 0;text-align:center;">不忘来时路 · 奋进新征程</p>
+  <button class="replay-btn reveal" style="--d:.75s" id="replay">重新播放</button>
+</section>
+</div>
+<div class="mask" id="mask"></div>
+<div class="dots" id="dots"></div>
+<div class="brand"><b>红色记忆</b> · 1921—2026</div>
+<script>
+// ========== 工具函数 ==========
+function damp(x0,x1,lambda,dt){ return x1 + (x0-x1)*Math.exp(-lambda*dt); }
+function easeInOutCubic(t){ return t<.5 ? 4*t*t*t : 1 - Math.pow(-2*t+2,3)/2; }
+const isMobile = /iPhone|Android|Mobile/i.test(navigator.userAgent);
+
+// ========== 状态机 ==========
+const panels = document.querySelectorAll('.panel');
+const N = panels.length;
+let mode = 'idle';            // idle | transitioning
+let idx = 0;
+let progress = 0;
+const DURATION = 0.9;         // 秒
+let lastTime = performance.now();
+let rafId = null;
+
+const mask = document.getElementById('mask');
+const dotsWrap = document.getElementById('dots');
+
+// 生成进度点
+const dots = [];
+panels.forEach((_,i)=>{
+  const d = document.createElement('div');
+  d.className = 'dot' + (i===0?' on':'');
+  d.addEventListener('click',()=>{ if(mode==='idle') goTo(i); });
+  dotsWrap.appendChild(d);
+  dots.push(d);
+});
+
+// ========== 数字滚动 ==========
+function runCountUp(panel){
+  panel.querySelectorAll('.cnt').forEach(el=>{
+    const to = +el.dataset.to;
+    const dur = 1200; const t0 = performance.now();
+    function tick(now){
+      const p = Math.min((now-t0)/dur,1);
+      el.textContent = Math.round(to * easeInOutCubic(p));
+      if(p<1) requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+  });
+}
+
+// ========== 激活某页 ==========
+function activate(i){
+  panels.forEach((p,pi)=>{
+    p.classList.toggle('active', pi===i);
+    p.classList.remove('play');
+  });
+  dots.forEach((d,di)=> d.classList.toggle('on', di===i));
+  // 下一帧触发入场动画
+  requestAnimationFrame(()=>{
+    requestAnimationFrame(()=>{
+      panels[i].classList.add('play');
+      if(panels[i].querySelectorAll('.cnt').length) runCountUp(panels[i]);
+    });
+  });
+}
+activate(0);
+
+// ========== 转场 ==========
+function goTo(next){
+  if(mode!=='idle') return;
+  if(next<0 || next>=N) return;
+  mode='transitioning';
+  progress=0;
+}
+function applyTransition(t){
+  // t 0~0.5 遮罩放大盖屏；0.5~1 缩小露新页
+  let s;
+  if(t<0.5){ s = easeInOutCubic(t/0.5); }
+  else{ s = easeInOutCubic(1-(t-0.5)/0.5); }
+  mask.style.transform = `translate(-50%,-50%) scale(${s})`;
+}
+let swapped=false;
+function finishTransition(){
+  mask.style.transform='translate(-50%,-50%) scale(0)';
+  mode='idle'; progress=0;
+}
+
+// ========== RAF 主循环 ==========
+function animate(now){
+  const dt = Math.min((now-lastTime)/1000, 0.05);
+  lastTime = now;
+
+  if(mode==='transitioning'){
+    progress += dt/DURATION;
+    if(progress>=1){
+      progress=1; applyTransition(1); finishTransition();
+    } else {
+      if(progress>=0.5 && !swapped){
+        idx = pendingIdx;
+        swapped=true;
+        activate(idx);
+      }
+      applyTransition(progress);
+    }
+  }
+  requestAnimationFrame(animate);
+}
+let pendingIdx = 0;
+requestAnimationFrame(animate);
+
+// 包装 goTo：记录目标并启动
+const _goTo = goTo;
+goTo = function(next){
+  if(mode!=='idle') return;
+  if(next<0||next>=N||next===idx) return;
+  pendingIdx = next;
+  swapped=false;
+  _goTo(next);
+};
+
+// ========== 滚轮输入（累积阈值） ==========
+let wheelAcc=0; const THRESHOLD=25;
+window.addEventListener('wheel',(e)=>{
+  if(mode!=='idle') return;
+  wheelAcc += e.deltaY;
+  if(Math.abs(wheelAcc)>=THRESHOLD){
+    goTo(wheelAcc>0 ? idx+1 : idx-1);
+    wheelAcc=0;
+  }
+},{passive:true});
+
+// ========== 触摸滑动（距离+速度） ==========
+let touchStartY=0, touchStartT=0;
+window.addEventListener('touchstart',(e)=>{
+  touchStartY=e.touches[0].clientY; touchStartT=performance.now();
+},{passive:true});
+window.addEventListener('touchend',(e)=>{
+  if(mode!=='idle') return;
+  const dy = touchStartY - e.changedTouches[0].clientY;
+  const dt = (performance.now()-touchStartT)/1000;
+  const velocity = Math.abs(dy)/(dt||0.016);
+  if(Math.abs(dy)>50 || (dt<0.3 && Math.abs(dy)>20 && velocity>0.3)){
+    goTo(dy>0 ? idx+1 : idx-1);
+  }
+},{passive:true});
+
+// ========== 键盘 ==========
+window.addEventListener('keydown',(e)=>{
+  if(mode!=='idle') return;
+  if(e.key==='ArrowDown'||e.key==='PageDown'||e.key===' '){ e.preventDefault(); goTo(idx+1); }
+  if(e.key==='ArrowUp'||e.key==='PageUp'){ e.preventDefault(); goTo(idx-1); }
+});
+
+// ========== 重新播放 ==========
+document.getElementById('replay').addEventListener('click',()=>{ goTo(0); });
+
+// ========== 阻尼视差（桌面端） ==========
+let tMx=0,tMy=0,cMx=0,cMy=0,parRaf=null;
+const bgGlow = document.getElementById('bgGlow');
+if(!isMobile){
+  window.addEventListener('pointermove',(e)=>{
+    tMx = (e.clientX/innerWidth - .5) * 24;
+    tMy = (e.clientY/innerHeight - .5) * 18;
+    if(!parRaf) parRaf = requestAnimationFrame(updatePar);
+  },{passive:true});
+  window.addEventListener('pointerleave',()=>{ tMx=0;tMy=0; if(!parRaf) parRaf=requestAnimationFrame(updatePar); });
+}
+function updatePar(){
+  parRaf=null;
+  cMx = damp(cMx,tMx,4,1/60);
+  cMy = damp(cMy,tMy,4,1/60);
+  bgGlow.style.transform = `translate3d(${cMx}px,${cMy}px,0)`;
+  if(Math.abs(cMx-tMx)>.1||Math.abs(cMy-tMy)>.1) parRaf=requestAnimationFrame(updatePar);
+}
+
+// ========== 金色粒子 ==========
+const cv = document.getElementById('dust');
+const ctx = cv.getContext('2d');
+let W,H,parts=[];
+function resize(){ W=cv.width=innerWidth; H=cv.height=innerHeight; }
+resize(); window.addEventListener('resize',resize);
+const COUNT = isMobile?30:60;
+for(let i=0;i<COUNT;i++){
+  parts.push({
+    x:Math.random()*innerWidth, y:Math.random()*innerHeight,
+    r:Math.random()*1.8+.4, s:Math.random()*.4+.1,
+    a:Math.random()*.5+.15, ph:Math.random()*Math.PI*2
+  });
+}
+(function draw(now){
+  ctx.clearRect(0,0,W,H);
+  for(const p of parts){
+    p.y -= p.s; p.ph += 0.01;
+    if(p.y<-5){ p.y=H+5; p.x=Math.random()*W; }
+    const tw = p.a * (0.6+0.4*Math.sin(p.ph));
+    ctx.beginPath();
+    ctx.arc(p.x + Math.sin(p.ph)*6, p.y, p.r, 0, Math.PI*2);
+    ctx.fillStyle = `rgba(230,194,106,${tw})`;
+    ctx.fill();
+  }
+  requestAnimationFrame(draw);
+})();
+</script>
+</body>
+</html>
